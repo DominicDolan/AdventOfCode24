@@ -21,7 +21,7 @@ pub fn main() {
     
     let mut total_diff = 0;
     for i in 0..left.len() {
-        let mut diff = (left[i] - right[i]);
+        let mut diff = left[i] - right[i];
         if diff < 0 { 
             diff = -diff;
         }
