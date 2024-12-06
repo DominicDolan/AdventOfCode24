@@ -1,11 +1,13 @@
 use crate::utils;
 
+#[allow(dead_code)]
 pub fn main() {
     let input = utils::read_input("day_01");
     // part_01(input); 
     part_02(String::from(input));
 }
 
+#[allow(dead_code)]
 fn part_01(input: String) {
     let mut left: Vec<i32> = Vec::new();
     let mut right: Vec<i32> = Vec::new();
@@ -37,16 +39,16 @@ fn part_01(input: String) {
 
 fn part_02(input: String) {
     let (left, right): (Vec<_>, Vec<_>) = input.lines().map(|line| {
-        let pairVec = line
+        let pair_vec = line
             .split_whitespace()
             .map(|s| s.parse::<i32>().unwrap())
             .collect::<Vec<i32>>();
 
-        (pairVec[0], pairVec[1])
+        (pair_vec[0], pair_vec[1])
     }).unzip();
 
     let sum = left.iter().map(|value| {
-        let instances = right.iter().filter(|x| { x.clone() == value}).count() as i32;
+        let instances = right.iter().filter(|x| { *x == value}).count() as i32;
         instances * value
     }).sum::<i32>();
     
