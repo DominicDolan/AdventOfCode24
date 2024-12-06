@@ -3,10 +3,10 @@ use crate::utils;
 
 pub fn main() {
     let input = utils::read_input("day_03");
-    part_01(input.as_str())
+    part_02(input.as_str())
 }
 
-fn part_01(input: &str) {
+fn part_01(input: &str) -> i32 {
     let re = Regex::new(r"mul\([0-9]+,[0-9]+\)").unwrap();
     let results = re.captures_iter(input).map(|exp| {
         let string_expression = String::from(exp.get(0).unwrap().as_str());
@@ -17,5 +17,16 @@ fn part_01(input: &str) {
         return multiplicands[0]*multiplicands[1]
     });
     
-    println!("input: {}", results.sum::<i32>());
+    return results.sum::<i32>();
+}
+
+fn part_02(input: &str) {
+    let parts = input.split("do()");
+    
+    let result = parts.map(|part| {
+        let enabled_part = part.split("don't()").into_iter().next().unwrap();
+        return part_01(enabled_part);
+    });
+    
+    println!("Day 3 part 2: {}", result.sum::<i32>())
 }
