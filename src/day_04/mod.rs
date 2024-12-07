@@ -1,20 +1,21 @@
 use regex::Regex;
 use crate::utils;
 
+const SAMPLE_INPUT: &str = "MMMSXXMASM
+MSAMXMSMSA
+AMXSXMAAMM
+MSAMASMSMX
+XMASAMXAMM
+XXAMMXXAMA
+SMSMSASXSS
+SAXAMASAAA
+MAMMMXMMMM
+MXMXAXMASX";
 pub fn main() {
 
     let input = utils::read_input("day_04");
-    part_1(&input)
-//     part_1("MMMSXXMASM
-// MSAMXMSMSA
-// AMXSXMAAMM
-// MSAMASMSMX
-// XMASAMXAMM
-// XXAMMXXAMA
-// SMSMSASXSS
-// SAXAMASAAA
-// MAMMMXMMMM
-// MXMXAXMASX")
+    // part_1(&input);
+    part_02(input.as_str());
 }
 
 fn part_1(input: &str) {
@@ -106,10 +107,51 @@ fn part_1(input: &str) {
     
     println!("{}", xmas_count_rows + xmas_count_cols + xmas_count_diagonals_left + xmas_count_diagonals_right);
 }
-/*
-  1  2  3  4
-1 11 21 31 41
-2 12 22 32 42
-3 13 23 33 43
-4 14 24 34 44
- */
+
+fn part_02(input: &str) {
+    let row_strings = input.lines().collect::<Vec<&str>>();
+    let rows = row_strings.into_iter().map(|row| {
+        return String::from(row).into_bytes().into_iter().map(|c| char::from(c)).collect::<Vec<char>>()
+    }).collect::<Vec<Vec<char>>>();
+
+    let all_a_locations = find_all(&rows, 'A');
+    
+    let mut found = 0;
+    let row_length = rows.len();
+    let col_length = rows[0].len();
+    for coord in all_a_locations {
+        if coord.0 == 0 || coord.1 == 0 || coord.1 == row_length - 1 || coord.0 == col_length - 1 { 
+            continue
+        }
+        let (before, after) = diagonal_left(&rows, coord);
+        
+        if !((before == 'S' && after == 'M') || (before == 'M' && after == 'S')) {
+            continue
+        }
+        let (before, after) = diagonal_right(&rows, coord);
+        
+        if !((before == 'S' && after == 'M') || (before == 'M' && after == 'S')) {
+            continue
+        }
+        found += 1;
+    }
+    println!("{}", found)
+}
+
+fn find_all(haystack: &Vec<Vec<char>>, pin: char) -> Vec<(usize, usize)> {
+    return haystack.into_iter().enumerate().map(|(i, row)| {
+        row.into_iter().enumerate().filter(|(_j, col)| {
+            **col == pin
+        }).map(|(j, _col)| {
+            (j, i)
+        }).collect::<Vec<(usize, usize)>>()
+    }).flatten().collect::<Vec<(usize, usize)>>();
+}
+
+fn diagonal_left(haystack: &Vec<Vec<char>>, coord: (usize, usize)) -> (char, char) {
+    (haystack[coord.1 - 1][coord.0 - 1], haystack[coord.1 + 1][coord.0 + 1])
+}
+
+fn diagonal_right(haystack: &Vec<Vec<char>>, coord: (usize, usize)) -> (char, char) {
+    (haystack[coord.1 - 1][coord.0 + 1], haystack[coord.1 + 1][coord.0 - 1])
+}
