@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use crate::utils;
 
 const SAMPLE_INPUT: &str = "47|53
@@ -31,10 +32,10 @@ const SAMPLE_INPUT: &str = "47|53
 
 pub fn main() {
     let input = utils::read_input("day_05");
-    part_01(input.as_str())
+    part_02(input.as_str())
 }
 
-fn part_01(input: &str) {
+fn part_02(input: &str) {
     let split = input.split("\n\n").collect::<Vec<&str>>();
     
     let notations = split[0].lines().map(|n| { 
@@ -53,10 +54,18 @@ fn part_01(input: &str) {
         
         let is_sorted = is_sorted_by_notations(&relevant_notations, &pages);
         
-        if is_sorted {
-            return String::from(pages[(pages.len() - 1)/2])
+        // Part 1 solution
+        // if is_sorted {
+        //     return String::from(pages[(pages.len() - 1)/2])
+        // } else {
+        //     return String::from("")
+        // }
+        return if !is_sorted {
+            let mut pages = pages.clone();
+            sort_by_notations(&relevant_notations, &mut pages);
+            String::from(pages[(pages.len() - 1) / 2])
         } else {
-            return String::from("")
+            String::from("")
         }
     }).map(|protocol| {
         let parsed_protocol = protocol.parse::<i32>();
@@ -67,9 +76,22 @@ fn part_01(input: &str) {
         }
     }).sum::<i32>();
     
-    println!("Day 05 Part 01: {}", total);
+    println!("Day 05 Part 02: {}", total);
 }
 
+fn sort_by_notations(protocols: &Vec<(&str, &str)>, pages: &mut Vec<&str>) {
+    pages.sort_by(|a, b| {
+        let found = protocols.iter().find(|(low, high)| {
+            a == low && b == high
+        }).is_some();
+        
+        if found {
+            Ordering::Less
+        } else {
+            Ordering::Greater
+        }
+    });
+}
 fn is_sorted_by_notations(protocols: &Vec<(&str, &str)>, pages: &Vec<&str>) -> bool {
     pages.iter().is_sorted_by(|a, b| {
         let not_found = protocols.iter().find(|(low, high)| {
