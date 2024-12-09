@@ -1,6 +1,6 @@
-use std::collections::HashSet;
-use std::iter::Map;
-use std::path::Display;
+use crate::utils;
+use crate::utils::char_grid::CharGrid;
+use crate::utils::grid_cursor::GridCursor;
 
 const SAMPLE_INPUT: &str = "....#.....
 .........#
@@ -14,109 +14,68 @@ const SAMPLE_INPUT: &str = "....#.....
 ......#...";
 
 pub fn main() {
-    part_01(SAMPLE_INPUT);
+    turn_right_test();
+    turn_left_test();
+    
+    let input = utils::read_input("day_06");
+    let track_length = part_01(input.as_str());
+    println!("Day 06 Part 1: {}", track_length);
 }
 
-fn part_01(input: &str) {
-    let rows = input
-        .lines()
-        .map(|row| row.chars().collect())
-        .collect::<Vec<Vec<char>>>();
-
-    let grid = CharGrid { grid: rows };
+fn part_01(input: &str) -> usize {
+    let grid = CharGrid::from(input);
 
     let guard_coord = grid.find_coord('^').expect("No value found for '^'");
 
-    let cursor = Cursor2D::new(guard_coord);
-}
-
-struct CharGrid {
-    grid: Vec<Vec<char>>,
-}
-
-impl CharGrid {
-    fn find_coord(&self, character: char) -> Option<(usize, usize)> {
-        for (x, row) in self.grid.iter().enumerate() {
-            for (y, c) in row.iter().enumerate() {
-                if character == *c {
-                    return Some((x, y));
-                }
+    let mut cursor = GridCursor::new(guard_coord);
+    
+    let mut direction = (0, -1);
+    let mut has_finished = false;
+    
+    while !has_finished {
+        cursor.inc_until(direction, |coord| {
+            let c = grid.get(coord);
+            return if c.is_some() && c.unwrap() == '#' {
+                false
+            } else if c.is_none() {
+                has_finished = true;
+                false
+            } else {
+                true
             }
-        }
-
-        None
+        });
+        
+        direction = turn_right(direction);
     }
+    
+    println!("{}", grid.as_string(|c, coord| {
+        return if cursor.track.contains(&(coord.0 as usize, coord.1 as usize)) {
+            'X'
+        } else {
+            c
+        }
+    }));
+    
+    cursor.track.len()
 }
 
-struct Cursor2D {
-    x: usize,
-    y: usize,
 
-    track: HashSet<(usize, usize)>,
+fn turn_right_test() {
+    assert_eq!(turn_right((1, 0)), (0, 1));
+    assert_eq!(turn_right((0, 1)), (-1, 0));
+    assert_eq!(turn_right((-1, 0)), (0, -1));
+    assert_eq!(turn_right((0, -1)), (1, 0));
 }
 
-impl Cursor2D {
-    fn east(&mut self, distance: i32) -> bool {
-        let coord = self.x as i32;
-        let new_coord = coord + distance;
-        if new_coord < 0 {
-            return false;
-        }
-        for d in coord..=new_coord {
-            self.track.insert((d as usize, self.y));
-        }
-        self.x = new_coord as usize;
-
-        true
-    }
-
-    fn west(&mut self, distance: i32) -> bool {
-        let coord = self.x as i32;
-        let new_coord = coord - distance;
-        if new_coord < 0 {
-            return false;
-        }
-        for d in coord..=new_coord {
-            self.track.insert((d as usize, self.y));
-        }
-        self.x = new_coord as usize;
-
-        true
-    }
-
-    fn south(&mut self, distance: i32) -> bool {
-        let coord = self.x as i32;
-        let new_coord = coord + distance;
-        if new_coord < 0 {
-            return false;
-        }
-        for d in coord..=new_coord {
-            self.track.insert((self.x, d as usize));
-        }
-        self.x = new_coord as usize;
-
-        true
-    }
-
-    fn north(&mut self, distance: i32) -> bool {
-        let coord = self.x as i32;
-        let new_coord = coord - distance;
-        if new_coord < 0 {
-            return false;
-        }
-        for d in coord..=new_coord {
-            self.track.insert((self.x, d as usize));
-        }
-        self.x = new_coord as usize;
-
-        true
-    }
-
-    fn new(coord: (usize, usize)) -> Cursor2D {
-        Cursor2D {
-            x: coord.0,
-            y: coord.1,
-            track: HashSet::new(),
-        }
-    }
+fn turn_left_test() {
+    assert_eq!(turn_left((1, 0)), (0, -1));
+    assert_eq!(turn_left((0, -1)), (-1, 0));
+    assert_eq!(turn_left((-1, 0)), (0, 1));
 }
+
+fn turn_right(direction: (i32, i32)) -> (i32, i32) {
+    (-direction.1, direction.0)
+}
+fn turn_left(direction: (i32, i32)) -> (i32, i32) {
+    (direction.1, -direction.0)
+} 
