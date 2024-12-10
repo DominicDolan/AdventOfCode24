@@ -1,14 +1,15 @@
+use crate::utils::ivector2::IVector2;
 
 pub struct CharGrid {
     grid: Vec<Vec<char>>,
 }
 
 impl CharGrid {
-    pub fn find_coord(&self, character: char) -> Option<(usize, usize)> {
+    pub fn find_coord(&self, character: char) -> Option<IVector2> {
         for (y, row) in self.grid.iter().enumerate() {
             for (x, c) in row.iter().enumerate() {
                 if character == *c {
-                    return Some((x, y));
+                    return Some(IVector2::new_usize(x, y));
                 }
             }
         }
@@ -16,34 +17,38 @@ impl CharGrid {
         None
     }
 
-    pub fn get(&self, coord: (i32, i32)) -> Option<char> {
+    pub fn get(&self, coord: IVector2) -> Option<char> {
         if !self.contains(coord) {
             return None
         }
-        Some(self.grid[coord.1 as usize][coord.0 as usize])
+        Some(self.grid[coord.y as usize][coord.x as usize])
     }
 
-    pub fn contains(&self, coord: (i32, i32)) -> bool {
+    pub fn contains(&self, coord: IVector2) -> bool {
         let dimensions = self.dimensions();
-        let contained_horizontal = coord.0 >= 0 && coord.0 < dimensions.0 as i32;
-        let contained_vertical = coord.1 >= 0 && coord.1 < dimensions.1 as i32;
+        let contained_horizontal = coord.x >= 0 && coord.x < dimensions.x as i32;
+        let contained_vertical = coord.y >= 0 && coord.y < dimensions.y as i32;
 
         contained_horizontal && contained_vertical
     }
 
-    pub fn dimensions(&self) -> (usize, usize) {
-        (self.grid[0].len(), self.grid.len())
+    pub fn dimensions(&self) -> IVector2 {
+        IVector2::new_usize(self.grid[0].len(), self.grid.len())
     }
 
-    pub fn as_string<F>(&self, transform_char: F) -> String where F: Fn(char, (i32, i32)) -> char {
+    pub fn as_transformed_string<F>(&self, transform_char: F) -> String where F: Fn(char, IVector2) -> char {
         let string = self.grid.iter().enumerate().map(|(i, row)| {
             row.iter()
                 .enumerate()
-                .map(|(j, c)| { transform_char(*c, (j as i32, i as i32)) })
+                .map(|(j, c)| { transform_char(*c, IVector2::new(j as i32, i as i32)) })
                 .collect::<String>()
         }).collect::<Vec<String>>();
 
         string.join("\n")
+    }
+    
+    pub fn as_string(&self) -> String {
+        self.as_transformed_string(|c, _| c)
     }
     
     pub fn from(string: &str) -> CharGrid {
