@@ -1,5 +1,8 @@
 pub mod grid_cursor;
 pub mod char_grid;
+mod vector_math;
+pub mod ortho_line;
+pub mod directions;
 
 #[allow(dead_code)]
 use std::fs::File;
