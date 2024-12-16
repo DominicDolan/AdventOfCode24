@@ -1,5 +1,6 @@
 mod track_runner;
 
+use std::collections::HashSet;
 use crate::day_06::track_runner::TrackRunners;
 use crate::utils;
 use crate::utils::char_grid::CharGrid;
@@ -18,23 +19,35 @@ const SAMPLE_INPUT: &str = "....#.....
 #.........
 ......#...";
 
+const TEST_INPUT: &str = "......
+..#...
+....#.
+.....#
+..^#..
+.#....
+....#.";
+
 pub fn main() {
     let input = utils::read_input("day_06");
     // let part_01_answer = part_01(input.as_str());
     // assert_eq!(part_01_answer, 5131);
 
-    let part_02_answer = part_02(input.as_str());
+    // let part_02_answer = part_02(TEST_INPUT);
+    let part_02_answer = part_02(SAMPLE_INPUT);
+    println!("Day 06 Part 2: {}", part_02_answer);
+    let part_02_answer = part_02(TEST_INPUT);
     println!("Day 06 Part 2: {}", part_02_answer);
 }
 
 enum GuardStopReason {
     Bounds,
     Obstacle,
-    LoopPoint
+    LoopPoint(IVector2)
 }
 
 enum TrackStopReason {
     NearbyObstacle,
+    GuardTrack(IVector2),
     Obstacle,
     CrossedTrack,
     Bounds
@@ -51,7 +64,7 @@ fn part_01(input: &str) -> usize {
     let mut has_finished = false;
 
     while !has_finished {
-         let reason = cursor.inc_until_some(|coord | {
+         let reason = cursor.step_until_some(|coord | {
             let c = grid.get(coord);
             return if c.is_some() && c.unwrap() == '#' {
                 Some(GuardStopReason::Obstacle)
@@ -63,7 +76,10 @@ fn part_01(input: &str) -> usize {
         });
         
         match reason {
-            GuardStopReason::Bounds => has_finished = true,
+            GuardStopReason::Bounds => {
+                cursor.step();
+                has_finished = true
+            },
             GuardStopReason::Obstacle => {
                 cursor.set_velocity(cursor.current_velocity().turn_right());
             },
@@ -83,9 +99,10 @@ fn part_02(input: &str) -> usize {
     guard.set_velocity(IVector2::new(0, -1));
     
     let mut track_runners = TrackRunners::new();
+
+    let mut loop_point_coords = HashSet::<IVector2>::new();
     
     let mut has_finished = false;
-    let mut loop_point_count = 0;
 
     fn is_left_hand_track(track_runners: &TrackRunners, coord: IVector2, current_velocity: IVector2) -> bool {
         let left_hand_velocity = current_velocity.turn_left();
@@ -102,12 +119,12 @@ fn part_02(input: &str) -> usize {
     
     while !has_finished {
         let current_velocity = guard.current_velocity();
-        let reason = guard.inc_until_some(|next| {
+        let reason = guard.step_until_some(|next| {
             let c = grid.get(next);
             return if c.is_some() && c.unwrap() == '#' {
                 Some(GuardStopReason::Obstacle)
             } else if is_left_hand_track(&track_runners, next, current_velocity) {
-                Some(GuardStopReason::LoopPoint)
+                Some(GuardStopReason::LoopPoint(next))
             } else if c.is_none() {
                 Some(GuardStopReason::Bounds)
             } else {
@@ -121,33 +138,42 @@ fn part_02(input: &str) -> usize {
                 let mut track_runner = GridCursor::new(guard.current_position());
                 track_runner.set_velocity(guard.current_velocity().reverse());
                 
-                track_runners = run_track(track_runners, &grid, track_runner);
+                track_runners = run_track(track_runners, &grid, track_runner, &mut loop_point_coords, &guard);
                 
                 guard.set_velocity(guard.current_velocity().turn_right());
             },
-            GuardStopReason::LoopPoint => {
-                loop_point_count += 1;
-                guard.inc()
+            GuardStopReason::LoopPoint(coord) => {
+                let loop_point = coord.plus(guard.current_velocity());
+                if grid.contains(loop_point) {
+                    loop_point_coords.insert(loop_point);
+                    println!("loop point found, {}", loop_point_coords.len())
+                }
+                guard.step()
             }
         }
+
+        print_grid(&grid, &guard, &Vec::<GridCursor>::new(), &loop_point_coords);
     }
     
-    loop_point_count
+    // print_grid(&grid, &guard, &Vec::<GridCursor>::new(), &HashSet::<IVector2>::new());
+    loop_point_coords.len()
 }
 
-fn run_track(mut track_runners: TrackRunners, grid: &CharGrid, mut track_runner: GridCursor) -> TrackRunners {
+fn run_track(mut track_runners: TrackRunners, grid: &CharGrid, mut track_runner: GridCursor, loop_points: &mut HashSet<IVector2>, guard: &GridCursor) -> TrackRunners {
 
     let mut has_finished = false;
     
     while !has_finished {
         let current_velocity = track_runner.current_velocity();
-        let reason = track_runner.inc_until_some(|coord | {
+        let reason = track_runner.step_until_some(|coord | {
             let c = grid.get(coord);
             let nearby_c = grid.get(coord.plus(current_velocity.turn_right()));
             return if c.is_some() && c.unwrap() == '#' {
                 Some(TrackStopReason::Obstacle)
             } else if track_runners.contains_track_with_velocity(coord, current_velocity) {
                 Some(TrackStopReason::CrossedTrack)
+            } else if guard.contains_track_with_velocity(coord, current_velocity.turn_right()) {
+                Some(TrackStopReason::GuardTrack(coord))
             } else if nearby_c.is_some() && nearby_c.unwrap() == '#' {
                 Some(TrackStopReason::NearbyObstacle)
             } else if c.is_none() {
@@ -161,12 +187,20 @@ fn run_track(mut track_runners: TrackRunners, grid: &CharGrid, mut track_runner:
             TrackStopReason::Bounds => has_finished = true,
             TrackStopReason::Obstacle => has_finished = true,
             TrackStopReason::CrossedTrack => has_finished = true,
+            TrackStopReason::GuardTrack(coord) => {
+                let loop_point = coord.plus(track_runner.current_velocity().turn_right());
+                if grid.contains(loop_point) {
+                    loop_points.insert(loop_point);
+                    println!("loop point found, {}", loop_points.len())
+                }
+                track_runner.step()
+            }
             TrackStopReason::NearbyObstacle => {
-                track_runner.inc();
+                track_runner.step();
                 let mut new_track_runner = GridCursor::new(track_runner.current_position());
                 new_track_runner.set_velocity(track_runner.current_velocity().turn_left());
                 
-                track_runners = run_track(track_runners, &grid, new_track_runner);
+                track_runners = run_track(track_runners, &grid, new_track_runner, loop_points, guard);
             }
         }
     }
@@ -175,7 +209,7 @@ fn run_track(mut track_runners: TrackRunners, grid: &CharGrid, mut track_runner:
     track_runners
 }
 
-fn print_grid(grid: &CharGrid, cursor: &GridCursor, track_runners: &Vec<GridCursor>) {
+fn print_grid(grid: &CharGrid, cursor: &GridCursor, track_runners: &Vec<GridCursor>, loop_points: &HashSet<IVector2>) {
     println!(
         "\n\n{}",
         grid.as_transformed_string(|c, coord| {
@@ -183,7 +217,9 @@ fn print_grid(grid: &CharGrid, cursor: &GridCursor, track_runners: &Vec<GridCurs
                 .iter()
                 .any(|runner| { runner.contains_track(coord) });
             
-            return if track_runner_contains_coords {
+            return if loop_points.contains(&coord) {
+                '0'
+            } else if track_runner_contains_coords {
                 '-'
             } else if cursor.has_passed(coord) {
                 'X'

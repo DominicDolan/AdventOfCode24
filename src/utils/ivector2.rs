@@ -43,6 +43,13 @@ impl IVector2 {
     pub fn plus(self, other: IVector2) -> IVector2 {
         IVector2::new(self.x + other.x, self.y + other.y)
     }
+    
+    pub fn magnitude(self) -> f32 {
+        let x = self.x as f32;
+        let y = self.y as f32;
+
+        (x * x + y * y).sqrt()
+    }
 
 }
 

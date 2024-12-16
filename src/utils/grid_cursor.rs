@@ -21,26 +21,22 @@ impl GridCursor {
             self.track.insert(location, set);
         }
     }
-    pub fn inc(&mut self)  {
+    pub fn step(&mut self)  {
+        let velocity_magnitude = self.velocity.magnitude();
+        assert!(velocity_magnitude >= 0.99 && velocity_magnitude <= 1.001);
         let old_coord = self.position;
         let new_coord = self.position.plus(self.velocity);
 
-        for location in min(old_coord.x, new_coord.x)..=max(old_coord.x, new_coord.x) {
-            self.insert_track_location(IVector2::new(location, old_coord.y))
-        }
-
-        for location in min(old_coord.y, new_coord.y)..=max(old_coord.y, new_coord.y) {
-            self.insert_track_location(IVector2::new(new_coord.x, location));
-        }
-        
+        self.insert_track_location(old_coord);
+  
         self.position = new_coord;
     }
 
-    pub fn inc_until_some<F, R>(&mut self, condition: F) -> R where F: Fn(IVector2) -> Option<R> {
+    pub fn step_until_some<F, R>(&mut self, condition: F) -> R where F: Fn(IVector2) -> Option<R> {
         let mut next = self.position.plus(self.velocity);
         let mut result = condition(next);
         while result.is_none() {
-            self.inc();
+            self.step();
 
             next = next.plus(self.velocity);
             
