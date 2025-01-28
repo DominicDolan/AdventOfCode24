@@ -13,6 +13,10 @@ impl IVector2 {
     pub fn new_usize(x: usize, y: usize) -> IVector2 {
         IVector2::new(x as i32, y as i32)
     }
+    
+    pub fn from_tuple(tuple: (usize, usize)) -> IVector2 {
+        IVector2::new_usize(tuple.0, tuple.1)
+    }
 
     pub fn default() -> IVector2 {
         IVector2 { x: 0, y: 0 }
@@ -43,6 +47,10 @@ impl IVector2 {
     pub fn plus(self, other: IVector2) -> IVector2 {
         IVector2::new(self.x + other.x, self.y + other.y)
     }
+
+    pub fn subtract(self, other: IVector2) -> IVector2 {
+        IVector2::new(self.x - other.x, self.y - other.y)
+    }
     
     pub fn magnitude(self) -> f32 {
         let x = self.x as f32;
@@ -50,6 +58,13 @@ impl IVector2 {
 
         (x * x + y * y).sqrt()
     }
-
+    
+    pub fn equals(self, other: IVector2) -> bool {
+        self.x == other.x && self.y == other.y
+    }
+    
+    pub fn is_in_rect(self, x: i32, y: i32, width: i32, height: i32) -> bool {
+        !(self.x < x || self.x > width || self.y < 0 || self.y > height)
+    }
 }
 
